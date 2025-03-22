@@ -1,5 +1,7 @@
 package com.example.echowavedemo
 
+import androidx.compose.ui.graphics.Color
+
 object Constants {
     val ACTION_USB_PERMISSION = "ECHO_WAVE_USB_PERMISSION"
     val SHARED_PREFERENCES_NAME = "ECHO_WAVE_SHARED_PREFERENCES"
@@ -41,5 +43,15 @@ object Constants {
         0x96.toByte(), 0x91.toByte(), 0x98.toByte(), 0x9F.toByte(), 0x8A.toByte(), 0x8D.toByte(), 0x84.toByte(), 0x83.toByte(),
         0xDE.toByte(), 0xD9.toByte(), 0xD0.toByte(), 0xD7.toByte(), 0xC2.toByte(), 0xC5.toByte(), 0xCC.toByte(), 0xCB.toByte(),
         0xE6.toByte(), 0xE1.toByte(), 0xE8.toByte(), 0xEF.toByte(), 0xFA.toByte(), 0xFD.toByte(), 0xF4.toByte(), 0xF3.toByte()
+    )
+    val RC_CODE_COLORS = listOf(
+        Color.White.value,
+        Color.Red.value,
+        Color.Green.value,
+        Color.Blue.value,
+        Color.Yellow.value,
+        Color.Cyan.value,
+        Color.Magenta.value,
+        Color.Gray.value,
     )
 }

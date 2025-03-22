@@ -1,20 +1,21 @@
 package com.example.echowavedemo
 
 import android.content.Context
+import androidx.compose.ui.graphics.Color
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.coroutines.CoroutineContext
 
 data class RcCode(
-    val color: Int,
+    val color: ULong,
     val data: RcData,
     val timestamp: Long,
 ) {
@@ -23,7 +24,7 @@ data class RcCode(
             val values = str.split(",")
             if (values.size != 10) throw IllegalArgumentException("Invalid RC code string")
             return RcCode(
-                color = values[0].toInt(),
+                color = values[0].toULong(),
                 data = RcData(
                     code = values[1].toInt(),
                     length = values[2].toInt(),
@@ -50,23 +51,30 @@ data class MainState(
     val rcCodes: List<RcCode> = emptyList(),
     val isLoading: Boolean = true,
     val isListening: Boolean = false,
+    val showConfirmationDialog: Boolean = false,
+    val selectedRcCode: RcCode? = null,
 )
 
-class MainViewModel : ViewModel(), CoroutineScope {
-    private val viewModelJob = SupervisorJob()
+enum class EventType(val type: Int) {
+    INITIALIZED(0x00), LISTEN_MODE(0x01), SEND_RC_CODE(0x02), RC_CODE_RECEIVED(0x03),
+}
 
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + viewModelJob
+data class EventState(
+    val type: EventType = EventType.INITIALIZED,
+    val success: Boolean = true,
+)
 
+class MainViewModel : ViewModel() {
     private val _state = MutableStateFlow(MainState())
     val state: StateFlow<MainState> = _state.asStateFlow()
+    private val _event = MutableSharedFlow<EventState>()
+    val event: SharedFlow<EventState> = _event
 
     private fun updateRcCodes(context: Context) {
         val codes = _state.value.rcCodes
 
         context.getSharedPreferences(
-            Constants.SHARED_PREFERENCES_NAME,
-            Context.MODE_PRIVATE
+            Constants.SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE
         ).run {
             edit {
                 if (codes.isEmpty()) {
@@ -85,10 +93,9 @@ class MainViewModel : ViewModel(), CoroutineScope {
             it.copy(isLoading = true, isListening = false)
         }
 
-        launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             val codes = context.getSharedPreferences(
-                Constants.SHARED_PREFERENCES_NAME,
-                Context.MODE_PRIVATE
+                Constants.SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE
             ).getStringSet(Constants.RC_CODES_KEY, null)
 
             val rcCodes: List<RcCode> = codes?.map { RcCode.fromString(it) } ?: emptyList()
@@ -113,24 +120,37 @@ class MainViewModel : ViewModel(), CoroutineScope {
     }
 
     fun startListening(context: Context) {
-        launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             if (!EchoWaveDevice.isInitialized && !EchoWaveDevice.init(context)) {
+                _event.emit(
+                    EventState(
+                        type = EventType.LISTEN_MODE,
+                        success = false,
+                    )
+                )
                 return@launch
             }
 
             _state.update {
                 it.copy(isListening = true)
             }
+            _event.emit(
+                EventState(
+                    type = EventType.LISTEN_MODE,
+                    success = true,
+                )
+            )
 
             EchoWaveDevice.startListening().collect { data ->
                 val timestamp = System.currentTimeMillis()
-                val newCode = RcCode(0, data, timestamp)
+                val newCode = RcCode(Color.White.value, data, timestamp)
                 _state.update {
-                    it.copy(
-                        rcCodes = it.rcCodes + newCode,
-                    )
+                    it.copy(rcCodes = it.rcCodes + newCode)
                 }
                 updateRcCodes(context)
+                _event.emit(
+                    EventState(type = EventType.RC_CODE_RECEIVED)
+                )
             }
         }
     }
@@ -140,9 +160,23 @@ class MainViewModel : ViewModel(), CoroutineScope {
             it.copy(isListening = false)
         }
 
-        launch {
+        viewModelScope.launch {
             EchoWaveDevice.stopListening()
         }
+    }
+
+    fun updateRcCode(context: Context, hash: Int, rcCode: RcCode) {
+        _state.update {
+            it.copy(
+                rcCodes = it.rcCodes.map { code ->
+                    if (code.hashCode() == hash) {
+                        rcCode
+                    } else {
+                        code
+                    }
+                })
+        }
+        updateRcCodes(context)
     }
 
     fun removeRcCode(context: Context, rcCode: RcCode) {
@@ -159,17 +193,50 @@ class MainViewModel : ViewModel(), CoroutineScope {
         context: Context,
         code: RcData,
     ) {
-        launch {
+        viewModelScope.launch {
             if (!EchoWaveDevice.isInitialized && !EchoWaveDevice.init(context)) {
+                _event.emit(
+                    EventState(
+                        type = EventType.SEND_RC_CODE,
+                        success = false,
+                    )
+                )
                 return@launch
             }
+
             if (_state.value.isListening) {
                 EchoWaveDevice.stopListening()
                 _state.update {
                     it.copy(isListening = false)
                 }
             }
+
             EchoWaveDevice.sendRcCode(code)
+
+            _event.emit(
+                EventState(
+                    type = EventType.SEND_RC_CODE,
+                    success = true,
+                )
+            )
+        }
+    }
+
+    fun showConfirmationDialog() {
+        _state.update {
+            it.copy(showConfirmationDialog = true)
+        }
+    }
+
+    fun dismissConfirmationDialog() {
+        _state.update {
+            it.copy(showConfirmationDialog = false)
+        }
+    }
+
+    fun selectRcCode(rcCode: RcCode? = null) {
+        _state.update {
+            it.copy(selectedRcCode = rcCode)
         }
     }
 }
