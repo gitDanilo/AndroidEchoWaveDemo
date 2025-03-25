@@ -122,8 +122,8 @@ fun Picker(
 @Composable
 fun ColorPicker(
     items: List<ULong>,
-    state: PickerState<ULong> = rememberPickerState(Color.White.value),
     modifier: Modifier = Modifier,
+    state: PickerState<ULong> = rememberPickerState(Color.White.value),
     startIndex: Int = 0,
     visibleItemsCount: Int = 3,
     badgeModifier: Modifier = Modifier,
@@ -172,7 +172,7 @@ fun ColorPicker(
             items(listScrollCount) { index ->
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(34.5.dp)
                         .background(color = Color.Transparent)
                         .onSizeChanged { size -> itemHeightPixels.intValue = size.height }
                         .then(badgeModifier)

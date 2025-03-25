@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -68,6 +69,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -231,7 +233,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         onItemPress = {
                             Log.d("MainActivity", "onItemPress: $it")
-                            viewModel.sendRcCode(application, it.data.copy(repeat = 3))
+                            viewModel.sendRcCode(application, it.data)
                         },
                         onItemLongPress = {
                             Log.d("MainActivity", "onItemLongPress: $it")
@@ -295,14 +297,72 @@ class MainActivity : ComponentActivity() {
                         .padding(bottom = 20.dp)
                         .align(Alignment.CenterHorizontally),
                 )
-                Text("Code: 0x${rcCode.data.code.toHexString(HexFormat.UpperCase)}")
-                Text("Length: ${rcCode.data.length} bits")
-                Text("Pulse Length: ${rcCode.data.pulseLength}")
-                Text("Sync Factor: ${rcCode.data.syncFactor}")
-                Text("One: ${rcCode.data.one}")
-                Text("Zero: ${rcCode.data.zero}")
-                Text("Inverted: ${rcCode.data.inverted}")
-                Text("Timestamp: ${rcCode.timestamp.formatTimestamp()}")
+
+                Row {
+                    Text("Code:")
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        "0x${rcCode.data.code.toHexString(HexFormat.UpperCase)}",
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Row {
+                    Text("Length:")
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        "${rcCode.data.length} bits",
+                        fontWeight = FontWeight.Bold,
+                    )
+
+                }
+                Row {
+                    Text("Pulse Length:")
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        rcCode.data.pulseLength.toString(),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Row {
+                    Text("Sync Factor:")
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        rcCode.data.syncFactor.toString(),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row {
+                    Text("One:")
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        rcCode.data.one.toString(),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row {
+                    Text("Zero:")
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        rcCode.data.zero.toString(),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row {
+                    Text("Inverted:")
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        rcCode.data.inverted.toString(),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row {
+                    Text("Timestamp:")
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        rcCode.timestamp.formatTimestamp(),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -458,7 +518,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     @Composable
     fun RcCodesList(
         rcCodes: List<RcCode>,

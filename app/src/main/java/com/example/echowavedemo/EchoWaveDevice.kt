@@ -159,7 +159,7 @@ object EchoWaveDevice {
                 msg = readMsg(0) ?: continue
                 if (msg.data is RcData) {
                     sendMsg(Msg(type = MsgType.REPLY, data = ReplyData(ReplyType.OK)))
-                    emit(msg.data)
+                    emit(msg.data as RcData)
                 }
             } while (isListening.get())
         }.flowOn(Dispatchers.IO)
