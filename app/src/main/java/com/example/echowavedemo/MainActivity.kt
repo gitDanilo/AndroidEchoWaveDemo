@@ -375,7 +375,7 @@ class MainActivity : ComponentActivity() {
                             .wrapContentSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("Color")
+                        Text("Tag")
                         Box(
                             modifier = Modifier
                                 .padding(horizontal = 10.dp)
